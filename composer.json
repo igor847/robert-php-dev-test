@@ -1,0 +1,12 @@
+{
+  "autoload": {
+    "psr-4": {
+      "Api\\": "api/"
+    },
+    "files": [
+      "api/Helpers/Response.php",
+      "api/Helpers/Debug.php",
+      "api/Helpers/Env.php"
+    ]
+  }
+}
