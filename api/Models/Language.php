@@ -9,12 +9,12 @@ class Language extends Model
     protected string $table = 'languages';
     protected string $primaryKey = 'code';
 
-    public ?string $code;
-    public ?string $title;
+    public string $code;
+    public string $title;
 
     public static function findByCode(
         string $code
-    ): Language|null {
+    ): Language {
         return self::findBy('code', $code)
             ->first();
     }

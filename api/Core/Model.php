@@ -39,7 +39,7 @@ abstract class Model
         return $this->primaryKey;
     }
 
-    public static function all(): Collection
+    public static function all(): array
     {
         $instance = new static();
         $request = $instance
@@ -50,7 +50,8 @@ abstract class Model
             $instance->getObjects(
                 $request->fetchAll(PDO::FETCH_ASSOC)
             )
-        );
+        )
+            ->toArray();
     }
 
     public static function findBy(
@@ -65,7 +66,7 @@ abstract class Model
         $request = $instance
             ->db
             ->prepare('SELECT * FROM `' . $instance->getTable() . '` WHERE `' . $column . '` = :value');
-        $request->bindParam(':value', $value, PDO::PARAM_STR);
+        $request->bindParam(':value', $value);
         $request->execute();
         return new Collection(
             $instance->getObjects(
@@ -76,7 +77,7 @@ abstract class Model
 
     public static function create(
         array $params = []
-    ): ?int {
+    ): void {
         $instance = new static();
         $params = $instance->filterParams($params);
 
@@ -89,37 +90,33 @@ abstract class Model
             $request->bindValue(":$key", $value);
         }
         $request->execute();
-
-        return $instance->db->lastInsertId();
     }
 
     public static function update(
-        int $id,
+        string|int $primaryKey,
         array $params
-    ) {
+    ): void {
         $instance = new static();
         $params = $instance->filterParams($params);
 
         $set = $instance->createRequestPlaceholders($params, '`{column}` = :{column}');
         $request = $instance
             ->db
-            ->prepare('UPDATE `' . $instance->getTable() . '` SET ' . $set . ' WHERE `' . $instance->getPrimaryKey() . '` = :__id');
+            ->prepare('UPDATE `' . $instance->getTable() . '` SET ' . $set . ' WHERE `' . $instance->getPrimaryKey() . '` = :primaryKey');
         foreach ($params as $key => $value) {
             $request->bindValue(":$key", $value);
         }
-        $request->bindValue(':__id', $id);
+        $request->bindValue(':primaryKey', $primaryKey);
         $request->execute();
     }
 
 
-    public static function delete(
-        int $id
-    ): bool {
-        $instance = new static();
-        $request = $instance
+    public function delete(): bool
+    {
+        $request = $this
             ->db
-            ->prepare('DELETE FROM `' . $instance->getTable() . '` WHERE `' . $instance->getPrimaryKey() . '` = :id');
-        $request->bindValue(':id', $id, \PDO::PARAM_INT);
+            ->prepare('DELETE FROM `' . $this->getTable() . '` WHERE `' . $this->getPrimaryKey() . '` = :primaryKey');
+        $request->bindValue(':primaryKey', $this->{$this->getPrimaryKey()});
         return $request->execute();
     }
 
@@ -127,8 +124,9 @@ abstract class Model
     public function save(): void
     {
         $vars = $this->getModelVars()->toArray();
+        $primaryKey = $this->{$this->primaryKey} ?? null;
 
-        if (isset($this->{$this->primaryKey}) && $this->{$this->primaryKey} !== null) {
+        if ($primaryKey !== null && static::findBy($this->primaryKey, $primaryKey)->count() > 0) {
             self::update($this->{$this->primaryKey}, $vars);
         } else {
             self::create($vars);

@@ -32,6 +32,7 @@ class Collection
         return array_values($this->items);
     }
 
+
     public function toArray(): array
     {
         return $this->items;
