@@ -75,6 +75,15 @@ abstract class Model
         );
     }
 
+    public static function findByID(
+        int $id
+    ): ?self {
+        $instance = new static();
+        return self::findBy($instance->getPrimaryKey(), $id)
+            ->first();
+    }
+
+
     public static function create(
         array $params = []
     ): void {
