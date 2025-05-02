@@ -4,9 +4,9 @@ namespace Api\Models;
 
 use Api\Core\Model;
 
-class Versions extends Model
+class Version extends Model
 {
-    protected $table = 'versions';
+    protected string $table = 'versions';
 
     public int $translation_id;
     public string $content;

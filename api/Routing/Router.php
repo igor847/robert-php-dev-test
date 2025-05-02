@@ -2,10 +2,11 @@
 
 namespace Api\Routing;
 
+use Api\Helpers\Request;
+
 use InvalidArgumentException;
 
 use const Api\Helpers\allowMethods;
-
 use function Api\Helpers\jsonResponse;
 
 class Router
@@ -44,12 +45,10 @@ class Router
 
     public function dispatch(): void
     {
-        $method = $_SERVER['REQUEST_METHOD'];
-        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $routes = $this->routes[Request::getMethod()] ?? [];
+        $uri = parse_url(Request::getUri(), PHP_URL_PATH);
 
-        foreach ($this->routes[$method] ?? [] as $route) {
-            // dd($method, $uri, $route['pattern'], $route['action']);
-
+        foreach ($routes as $route) {
             if (preg_match($route['pattern'], $uri, $matches)) {
                 $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
                 $this->execute($route['action'], $params);

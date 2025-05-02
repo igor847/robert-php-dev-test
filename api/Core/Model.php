@@ -3,10 +3,11 @@
 namespace Api\Core;
 
 use PDO;
+use BackedEnum;
 use Api\Core\DB;
-use Api\Core\Collection;
 use ReflectionClass;
 use ReflectionProperty;
+use Api\Core\Collection;
 
 use function Api\Helpers\dd;
 
@@ -86,7 +87,7 @@ abstract class Model
 
     public static function create(
         array $params = []
-    ): void {
+    ): string|int {
         $instance = new static();
         $params = $instance->filterParams($params);
 
@@ -99,6 +100,8 @@ abstract class Model
             $request->bindValue(":$key", $value);
         }
         $request->execute();
+
+        return $instance->db->lastInsertId();
     }
 
     public static function update(
@@ -113,6 +116,9 @@ abstract class Model
             ->db
             ->prepare('UPDATE `' . $instance->getTable() . '` SET ' . $set . ' WHERE `' . $instance->getPrimaryKey() . '` = :primaryKey');
         foreach ($params as $key => $value) {
+            if ($value instanceof BackedEnum) {
+                $value = $value->value;
+            }
             $request->bindValue(":$key", $value);
         }
         $request->bindValue(':primaryKey', $primaryKey);
@@ -133,10 +139,10 @@ abstract class Model
     public function save(): void
     {
         $vars = $this->getModelVars()->toArray();
-        $primaryKey = $this->{$this->primaryKey} ?? null;
+        $primaryKey = $this->{$this->getPrimaryKey()} ?? null;
 
-        if ($primaryKey !== null && static::findBy($this->primaryKey, $primaryKey)->count() > 0) {
-            self::update($this->{$this->primaryKey}, $vars);
+        if ($primaryKey !== null && static::findBy($this->getPrimaryKey(), $primaryKey)->count() > 0) {
+            self::update($this->{$this->getPrimaryKey()}, $vars);
         } else {
             self::create($vars);
         }
@@ -148,9 +154,21 @@ abstract class Model
     ): self {
         $instance = new static();
         foreach ($data as $key => $val) {
-            if (property_exists($instance, $key)) {
-                $instance->$key = $val;
+            if (!property_exists($instance, $key)) {
+                continue;
             }
+
+            $reflectionProperty = new \ReflectionProperty($instance, $key);
+            $type = $reflectionProperty->getType();
+
+            if ($type && !$type->isBuiltin()) {
+                $typeName = $type->getName();
+                if (enum_exists($typeName)) {
+                    $val = $typeName::from($val);
+                }
+            }
+
+            $instance->$key = $val;
         }
         return $instance;
     }
