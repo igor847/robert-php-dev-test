@@ -6,7 +6,6 @@ use InvalidArgumentException;
 
 use const Api\Helpers\allowMethods;
 
-use function Api\Helpers\dd;
 use function Api\Helpers\jsonResponse;
 
 class Router
@@ -33,8 +32,12 @@ class Router
         array $action
     ): void {
         $pattern = preg_replace('#\{(\w+)\}#', '(?P<$1>[^/]+)', $path);
+        $pattern = rtrim($pattern, '/');
+        if (empty($pattern)) {
+            $pattern = '/';
+        }
         $this->routes[$method][] = [
-            'pattern' => "#^" . rtrim($pattern, '/') . "$#",
+            'pattern' => "#^" . $pattern . "$#",
             'action' => $action
         ];
     }
@@ -45,6 +48,8 @@ class Router
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
         foreach ($this->routes[$method] ?? [] as $route) {
+            // dd($method, $uri, $route['pattern'], $route['action']);
+
             if (preg_match($route['pattern'], $uri, $matches)) {
                 $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
                 $this->execute($route['action'], $params);
