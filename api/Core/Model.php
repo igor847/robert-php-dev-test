@@ -4,7 +4,12 @@ namespace Api\Core;
 
 use PDO;
 use Api\Core\DB;
-use App\Core\Collection;
+use Api\Core\Collection;
+use ReflectionClass;
+use ReflectionProperty;
+
+use function Api\Helpers\dd;
+
 use InvalidArgumentException;
 
 abstract class Model
@@ -12,6 +17,12 @@ abstract class Model
     protected PDO $db;
     protected string $table;
     protected string $primaryKey = 'id';
+
+    const EXCLUDE_PROPS = [
+        'db',
+        'table',
+        'primaryKey',
+    ];
 
     public function __construct()
     {
@@ -31,10 +42,12 @@ abstract class Model
     public static function all(): Collection
     {
         $instance = new static();
-        $request = $instance->db->prepare('SELECT * FROM `' . $instance->getTable() . '`');
+        $request = $instance
+            ->db
+            ->prepare('SELECT * FROM `' . $instance->getTable() . '`');
         $request->execute();
         return new Collection(
-            static::getObjects(
+            $instance->getObjects(
                 $request->fetchAll(PDO::FETCH_ASSOC)
             )
         );
@@ -45,25 +58,20 @@ abstract class Model
         mixed $value
     ): Collection {
         $instance = new static();
-        if (!in_array($column, array_keys($instance->getModelVars()), true)) {
+        if (!in_array($column, $instance->getModelVars()->keys(), true)) {
             throw new InvalidArgumentException('Column ' . $column . ' does not exist in model.');
         }
 
-        $request = $instance->db->prepare('SELECT * FROM `' . $instance->getTable() . '` WHERE `' . $column . '` = :value');
+        $request = $instance
+            ->db
+            ->prepare('SELECT * FROM `' . $instance->getTable() . '` WHERE `' . $column . '` = :value');
         $request->bindParam(':value', $value, PDO::PARAM_STR);
         $request->execute();
         return new Collection(
-            static::getObjects(
+            $instance->getObjects(
                 $request->fetchAll(PDO::FETCH_ASSOC)
             )
         );
-    }
-
-    public static function findByID(
-        int $id
-    ): mixed {
-        return static::findBy(static::getPrimaryKey(), $id)
-            ->first();
     }
 
     public static function create(
@@ -118,7 +126,7 @@ abstract class Model
 
     public function save(): void
     {
-        $vars = $this->getModelVars();
+        $vars = $this->getModelVars()->toArray();
 
         if (isset($this->{$this->primaryKey}) && $this->{$this->primaryKey} !== null) {
             self::update($this->{$this->primaryKey}, $vars);
@@ -131,29 +139,39 @@ abstract class Model
     private function getObject(
         array $data
     ): self {
-        $model = new self();
+        $instance = new static();
         foreach ($data as $key => $val) {
-            if (property_exists($model, $key)) {
-                $model->$key = $val;
+            if (property_exists($instance, $key)) {
+                $instance->$key = $val;
             }
         }
-        return $model;
+        return $instance;
     }
 
     private function getObjects(
         array $rows
     ): array {
         return array_map(
-            fn($row) => static::getObject($row),
+            fn($row) => $this->getObject($row),
             $rows
         );
     }
 
-    private function getModelVars(): array
+    private function getModelVars(): Collection
     {
-        $props = get_object_vars($this);
-        unset($props['db'], $props['table'], $props['primaryKey']);
-        return $props;
+        $vars = [];
+        $props = (new ReflectionClass($this))
+            ->getProperties(ReflectionProperty::IS_PUBLIC);
+
+        foreach ($props as $prop) {
+            $name = $prop->getName();
+            $vars[$name] = $this->$name ?? null;
+        }
+
+        foreach (self::EXCLUDE_PROPS as $prop) {
+            unset($vars[$prop]);
+        }
+        return new Collection($vars ?? []);
     }
 
     private function createRequestPlaceholders(
@@ -172,10 +190,9 @@ abstract class Model
     private function filterParams(
         array $params
     ): array {
-        $allowed = array_keys($this->getModelVars());
         return array_filter(
             $params,
-            fn($key) => in_array($key, $allowed, true),
+            fn($key) => in_array($key, $this->getModelVars()->keys(), true),
             ARRAY_FILTER_USE_KEY
         );
     }

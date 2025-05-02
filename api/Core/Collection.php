@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core;
+namespace Api\Core;
 
 class Collection
 {
@@ -10,11 +10,6 @@ class Collection
         array $items
     ) {
         $this->items = $items;
-    }
-
-    public function all(): array
-    {
-        return $this->items;
     }
 
     public function first(): mixed
@@ -27,4 +22,18 @@ class Collection
         return count($this->items);
     }
 
+    public function keys(): array
+    {
+        return array_keys($this->items);
+    }
+
+    public function values(): array
+    {
+        return array_values($this->items);
+    }
+
+    public function toArray(): array
+    {
+        return $this->items;
+    }
 }

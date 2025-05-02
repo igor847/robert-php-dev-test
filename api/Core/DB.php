@@ -3,6 +3,7 @@
 namespace Api\Core;
 
 use PDO;
+use PDOException;
 
 use function Api\Helpers\env;
 
@@ -21,14 +22,18 @@ class DB
                 'charset' => 'utf8mb4',
             ];
 
-            self::$instance = new PDO(
-                "mysql:host={$params['host']};port={$params['port']};dbname={$params['dbname']};charset={$params['charset']}",
-                env('DB_USER'),
-                env('DB_PASS'),
-                [
+            try {
+                self::$instance = new PDO(
+                    "mysql:host={$params['host']};port={$params['port']};dbname={$params['dbname']};charset={$params['charset']}",
+                    env('DB_USER'),
+                    env('DB_PASS'),
+                    [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-                ]
-            );
+                    ]
+                );
+            } catch (PDOException $e) {
+                die('Database connection error: ' . $e->getMessage());
+            }
         }
         return self::$instance;
     }

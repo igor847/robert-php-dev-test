@@ -2,15 +2,23 @@
 
 namespace Api\Controller;
 
+use Api\Models\Language;
 use Api\Models\User;
 
+use function Api\Helpers\dd;
 use function Api\Helpers\jsonResponse;
 
 class TestController
 {
-    public function test($id)
+    public function test()
     {
+        echo jsonResponse([
+            'message' => Language::findByCode('en')
+        ]);
+    }
 
-        echo jsonResponse(['message' => 'Test successful!']);
+    public function testId($id)
+    {
+        echo jsonResponse(['message' => 'Test ' . $id . ' successful!']);
     }
 }

@@ -7,5 +7,4 @@ use Api\Core\Model;
 class User extends Model
 {
     protected $table = 'users';
-    protected ?string $firstname;
 }

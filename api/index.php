@@ -7,6 +7,7 @@ use Api\Routing\Router;
 
 $router = new Router();
 
-$router->get('/api/items/{id}', [TestController::class, 'test']);
+$router->get('/test', [TestController::class, 'test']);
+$router->get('/api/items/{id}', [TestController::class, 'testId']);
 
 $router->dispatch();
