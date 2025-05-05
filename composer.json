@@ -9,5 +9,8 @@
       "api/Helpers/Env.php",
       "api/Helpers/Request.php"
     ]
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.1"
   }
 }
