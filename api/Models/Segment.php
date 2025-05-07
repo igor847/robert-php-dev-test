@@ -19,7 +19,7 @@ class Segment extends Model
         return Language::findByCode($this->language);
     }
 
-    public function translation(): Translation
+    public function translation(): ?Translation
     {
         return Translation::findBy('segment_id', $this->{$this->getPrimaryKey()})->first();
     }

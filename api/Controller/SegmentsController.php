@@ -19,7 +19,7 @@ class SegmentsController
             $segments[] = [
                 'id' => $segment->id,
                 'content' => $segment->content,
-                'translation' => $segment->translation()->content,
+                'translation' => $segment->translation()->content ?? null,
             ];
         }
 
@@ -30,22 +30,34 @@ class SegmentsController
     {
         $request = Request::getBody();
 
-        $lastId = Segment::create([
-            'language' => 'en',
-            'content' => $request['segment'],
-        ]);
-
-        if ($lastId) {
-            Translation::create([
-                'segment_id' => $lastId,
-                'language' => 'uk',
-                'status' => TranslationStatus::PENDING,
-                'content' => $request['translation'],
+        try {
+            $lastId = Segment::create([
+                'language' => 'en',
+                'content' => $request['segment'],
             ]);
+
+            if ($lastId) {
+                Translation::create([
+                    'segment_id' => $lastId,
+                    'language' => 'uk',
+                    'status' => TranslationStatus::PENDING,
+                    'content' => $request['translation'],
+                ]);
+            }
+        } catch (\Exception $e) {
+            echo jsonResponse([
+                'message' => 'Error creating segment!',
+                'error' => $e->getMessage(),
+            ], 500);
+            return;
         }
 
+        $segment = Segment::findByID($lastId);
+
         echo jsonResponse([
-            'message' => 'Segment created!',
+            'id' => $segment->id,
+            'content' => $segment->content,
+            'translation' => $segment->translation()->content ?? null,
         ]);
     }
 
@@ -54,17 +66,27 @@ class SegmentsController
     ) {
         $request = Request::getBody();
 
-        $segment = Segment::findByID($id);
-        $segment->content = $request['content'];
-        $segment->save();
+        try {
+            $segment = Segment::findByID($id);
+            $segment->content = $request['content'];
+            $segment->save();
 
-        $translation = $segment->translation();
-        $translation->toHistory();
-        $translation->content = $request['translation'];
-        $translation->save();
+            $translation = $segment->translation();
+            $translation->toHistory();
+            $translation->content = $request['translation'];
+            $translation->save();
+        } catch (\Exception $e) {
+            echo jsonResponse([
+                'message' => 'Error updating segment!',
+                'error' => $e->getMessage(),
+            ], 500);
+            return;
+        }
 
         echo jsonResponse([
-            'id' => $id,
+            'id' => $segment->id,
+            'content' => $segment->content,
+            'translation' => $segment->translation()->content ?? null,
         ]);
     }
 }

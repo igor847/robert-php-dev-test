@@ -97,7 +97,7 @@ abstract class Model
             ->db
             ->prepare('INSERT INTO `' . $instance->getTable() . '` (' . $cols . ') VALUES (' . $placeholders . ')');
         foreach ($params as $key => $value) {
-            $request->bindValue(":$key", $value);
+            $request->bindValue(":$key", static::IfEnumValue($value));
         }
         $request->execute();
 
@@ -116,10 +116,7 @@ abstract class Model
             ->db
             ->prepare('UPDATE `' . $instance->getTable() . '` SET ' . $set . ' WHERE `' . $instance->getPrimaryKey() . '` = :primaryKey');
         foreach ($params as $key => $value) {
-            if ($value instanceof BackedEnum) {
-                $value = $value->value;
-            }
-            $request->bindValue(":$key", $value);
+            $request->bindValue(":$key", static::IfEnumValue($value));
         }
         $request->bindValue(':primaryKey', $primaryKey);
         $request->execute();
@@ -220,5 +217,11 @@ abstract class Model
             fn($key) => in_array($key, $this->getModelVars()->keys(), true),
             ARRAY_FILTER_USE_KEY
         );
+    }
+
+    private static function IfEnumValue(
+        mixed $value
+    ): mixed {
+        return $value instanceof BackedEnum ? $value->value : $value;
     }
 }

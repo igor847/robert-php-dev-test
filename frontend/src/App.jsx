@@ -14,7 +14,8 @@ function App() {
       .then((data) => setSegments(data));
   }, []);
 
-  const handleAdd = () => {
+  const handleAdd = (e) => {
+    e.preventDefault();
     fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -33,7 +34,6 @@ function App() {
 
   const handleUpdate = (id) => {
     const unit = segments.find((u) => u.id === id);
-    console.log('iunit', unit);
     fetch(`${API_URL}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -58,6 +58,13 @@ function App() {
               <label for="segment" class="form-label">
                 Segment
               </label>
+              <select class="form-select mb-1">
+                <option selected>Language...</option>
+                <option value="en" selected>
+                  English
+                </option>
+                <option value="uk">Ukrainian</option>
+              </select>
               <textarea
                 class="form-control"
                 cols="30"
@@ -71,6 +78,13 @@ function App() {
               <label for="translate" class="form-label">
                 Translate
               </label>
+              <select class="form-select mb-1">
+                <option selected>Language...</option>
+                <option value="en">English</option>
+                <option value="uk" selected>
+                  Ukrainian
+                </option>
+              </select>
               <textarea
                 class="form-control"
                 cols="30"
